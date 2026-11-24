@@ -6,11 +6,17 @@ x-laravel: &laravel
   init: true
   env_file: ./.env
   volumes:
-    - laravel-storage:/app/storage
+    - type: volume
+      source: laravel-storage
+      target: /app/storage
+      volume:
+        nocopy: true
 
 services:
   app:
     <<: *laravel
+    volumes:
+      - laravel-storage:/app/storage
     command:
       - /bin/sh
       - -ec
@@ -56,6 +62,8 @@ services:
     ports:
       - "127.0.0.1:${REVERB_WS_PORT:-8082}:8080"
     depends_on:
+      app:
+        condition: service_healthy
       redis:
         condition: service_healthy
     restart: unless-stopped
@@ -123,6 +131,7 @@ services:
 
   minio-init:
     <<: *laravel
+    volumes: []
     command: ["php", "docker/init-minio.php"]
     depends_on:
       minio:
