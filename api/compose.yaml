@@ -1,0 +1,136 @@
+name: gymtracker
+
+x-laravel: &laravel
+  image: gymtracker-laravel:local
+  build: .
+  init: true
+  env_file: ./.env
+  volumes:
+    - laravel-storage:/app/storage
+
+services:
+  app:
+    <<: *laravel
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        : "$${APP_KEY:?Set APP_KEY in api/.env before starting GymTracker}"
+        php artisan migrate --force --no-interaction
+        exec php artisan serve --host=0.0.0.0 --port=8000 --tries=1
+    ports:
+      - "127.0.0.1:${APP_PORT:-8000}:8000"
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1:8000/up') === false ? 1 : 0);"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  cron:
+    <<: *laravel
+    command: ["php", "artisan", "schedule:work", "--no-interaction"]
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+
+  horizon:
+    <<: *laravel
+    command: ["php", "artisan", "horizon", "--no-interaction"]
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+    stop_grace_period: 75s
+
+  reverb:
+    <<: *laravel
+    command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080", "--no-interaction"]
+    ports:
+      - "127.0.0.1:${REVERB_WS_PORT:-8082}:8080"
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  database:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in api/.env}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in api/.env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in api/.env}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", 'pg_isready -h 127.0.0.1 -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  adminer:
+    image: adminer:5-standalone
+    environment:
+      ADMINER_DEFAULT_SERVER: database
+    ports:
+      - "127.0.0.1:${ADMINER_PORT:-8081}:8080"
+    depends_on:
+      database:
+        condition: service_healthy
+
+  mailpit:
+    image: axllent/mailpit:v1.34.0
+    ports:
+      - "127.0.0.1:${MAILPIT_UI_PORT:-8026}:8025"
+    environment:
+      MP_DATABASE: /data/mailpit.db
+    volumes:
+      - mailpit-data:/data
+
+  minio:
+    build: ./docker/minio
+    command: ["server", "/data", "--console-address", ":9001"]
+    ports:
+      - "127.0.0.1:${MINIO_API_PORT:-9000}:9000"
+      - "127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER in api/.env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in api/.env}
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:9000/minio/health/cluster"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  minio-init:
+    <<: *laravel
+    command: ["php", "docker/init-minio.php"]
+    depends_on:
+      minio:
+        condition: service_healthy
+
+volumes:
+  laravel-storage:
+  redis-data:
+  postgres-data:
+  mailpit-data:
+  minio-data:

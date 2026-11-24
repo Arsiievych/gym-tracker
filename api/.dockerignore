@@ -1,0 +1,13 @@
+.git
+.env*
+**/auth.json
+vendor
+node_modules
+public/build
+public/hot
+public/storage
+database/*.sqlite*
+bootstrap/cache/*.php
+storage
+.phpunit*
+.DS_Store

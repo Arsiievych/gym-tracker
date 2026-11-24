@@ -7,6 +7,37 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## GymTracker development with Docker
+
+Run these commands from `api/`. Compose loads Laravel settings from `api/.env` through `env_file`. It also reads the PostgreSQL and MinIO settings from that file to configure those services. Preserve the existing `APP_KEY` when editing `.env`. For a fresh checkout, create the file and generate a key.
+
+```sh
+cp .env.example .env
+docker compose run --build --rm --no-deps --user root -v "$PWD/.env:/app/.env" app php artisan key:generate --no-interaction
+```
+
+Start the stack with:
+
+```sh
+docker compose up -d --build
+```
+
+| Service | Local address |
+| --- | --- |
+| Laravel API | [127.0.0.1:8000/api/health](http://127.0.0.1:8000/api/health) |
+| Horizon | [127.0.0.1:8000/horizon](http://127.0.0.1:8000/horizon) |
+| Reverb WebSocket | `ws://127.0.0.1:8082` |
+| Adminer | [127.0.0.1:8081](http://127.0.0.1:8081) |
+| Mailpit | [127.0.0.1:8026](http://127.0.0.1:8026) |
+| MinIO console | [127.0.0.1:9001](http://127.0.0.1:9001) |
+| MinIO S3 API | `http://127.0.0.1:9000` |
+
+In Adminer, select PostgreSQL and connect to `database` with database and user `gymtracker` and password `gymtracker-local`. MinIO uses the same default username and password. Compose accepts `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD`, and `MINIO_BUCKET` overrides from `api/.env`. PostgreSQL applies these initialization settings to a new volume. Update existing credentials in PostgreSQL before changing them in `.env`.
+
+The app applies pending PostgreSQL migrations at startup. The one-shot `minio-init` service creates the private bucket. PostgreSQL, Redis, Laravel storage, Mailpit, and MinIO use named volumes.
+
+Use port 8000 for the existing React development proxy. Stop any standalone Laravel server on that port before starting this stack. Run `docker compose up -d` after editing `.env` to recreate services with the updated settings. After Laravel source changes, rerun `docker compose up -d --build`. The Compose configuration and credentials are for local development.
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
