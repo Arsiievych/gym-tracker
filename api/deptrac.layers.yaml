@@ -1,0 +1,65 @@
+deptrac:
+  paths:
+    - ./app
+
+  layers:
+    - name: Requests
+      collectors:
+        - { type: classLike, value: '^App\\(?:Modules\\[^\\]+\\)?Http\\Requests\\' }
+    - name: Controllers
+      collectors:
+        - { type: classLike, value: '^App\\(?:Modules\\[^\\]+\\)?Http\\Controllers\\' }
+    - name: Resources
+      collectors:
+        - { type: classLike, value: '^App\\(?:Modules\\[^\\]+\\)?Http\\Resources\\' }
+    - name: Actions
+      collectors:
+        - { type: classLike, value: '^App\\(?:Modules\\[^\\]+\\)?Actions\\' }
+    - name: Repositories
+      collectors:
+        - { type: classLike, value: '^App\\(?:Modules\\[^\\]+\\)?Repositories\\' }
+    - name: Models
+      collectors:
+        - { type: classLike, value: '^App\\(?:Modules\\[^\\]+\\)?Models\\' }
+    - name: Data
+      collectors:
+        - { type: classLike, value: '^App\\(?:Modules\\[^\\]+\\)?Data\\' }
+    - name: Providers
+      collectors:
+        - { type: classLike, value: '^App\\Providers\\' }
+    - name: LaravelPersistence
+      collectors:
+        - { type: classLike, value: '^Illuminate\\(?:Database\\|Support\\Facades\\(?:DB|Schema)$)' }
+        - { type: classLike, value: '^(?:DB|Schema)$' }
+    - name: Laravel
+      collectors:
+        - type: bool
+          must:
+            - { type: classLike, value: '^(Illuminate|Laravel)\\' }
+          must_not:
+            - { type: layer, value: LaravelPersistence }
+    - name: UnclassifiedApp
+      collectors:
+        - type: bool
+          must:
+            - { type: classLike, value: '^App\\' }
+          must_not:
+            - { type: layer, value: Requests }
+            - { type: layer, value: Controllers }
+            - { type: layer, value: Resources }
+            - { type: layer, value: Actions }
+            - { type: layer, value: Repositories }
+            - { type: layer, value: Models }
+            - { type: layer, value: Data }
+            - { type: layer, value: Providers }
+
+  ruleset:
+    Requests: [Data, Laravel]
+    Controllers: [Requests, Actions, Resources, Laravel]
+    Resources: [Data, Laravel]
+    Actions: [Repositories, Data, Laravel]
+    Repositories: [Models, Data, Laravel, LaravelPersistence]
+    Models: [Laravel, LaravelPersistence]
+    Data: []
+    Providers: [Requests, Controllers, Resources, Actions, Repositories, Models, Data, Laravel, LaravelPersistence]
+    UnclassifiedApp: []

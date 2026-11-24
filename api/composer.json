@@ -14,6 +14,7 @@
         "league/flysystem-aws-s3-v3": "^3.35"
     },
     "require-dev": {
+        "deptrac/deptrac": "^4.7",
         "fakerphp/faker": "^1.23",
         "larastan/larastan": "^3.0",
         "laravel/pail": "^1.2.5",
@@ -50,9 +51,14 @@
         ],
         "lint": "pint --test",
         "analyse": "phpstan analyse --no-progress --memory-limit=512M",
+        "architecture": [
+            "deptrac analyse --config-file=deptrac.layers.yaml --no-cache --no-progress",
+            "deptrac analyse --config-file=deptrac.modules.php --no-cache --no-progress"
+        ],
         "check": [
             "@lint",
-            "@analyse"
+            "@analyse",
+            "@architecture"
         ],
         "test": [
             "@php artisan config:clear --ansi @no_additional_args",
