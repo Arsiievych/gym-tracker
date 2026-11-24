@@ -8,7 +8,14 @@ Set up `api/.env` following the [Laravel Docker instructions](api/README.md) and
 | Stop | `make backend-stop` | `make frontend-stop` | `make stop` |
 | Restart | `make backend-restart` | `make frontend-restart` | |
 | Test | `make backend-test` | `make frontend-test` | |
+| Check code | `make backend-check` | `make frontend-check` | |
+| Audit dependencies | `make backend-audit` | | |
+| Run all checks and tests | | | `make pre-commit` |
 
 React runs at <http://127.0.0.1:5173/> and proxies API requests to port 8000 by default. `make start` uses the API port published by Docker. For a standalone frontend with a custom API URL, pass it as `make frontend-start API_PROXY_TARGET=http://127.0.0.1:8001`.
 
 The backend test target uses SQLite in memory and temporary storage. The frontend test target runs the test script when available, then checks lint and the production build.
+
+`make backend-check` runs Pint and Larastan at PHPStan level 8 in Docker. `make backend-audit` checks `api/composer.lock` against Composer advisories and requires network access.
+
+`make frontend-check` runs TypeScript, Oxlint, and Prettier. Use `npm --prefix web run format` to apply Prettier formatting.

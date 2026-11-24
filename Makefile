@@ -1,4 +1,10 @@
 DOCKER_COMPOSE ?= docker compose -f api/compose.yaml
+BACKEND_VERIFY = $(DOCKER_COMPOSE) run --build --rm --no-deps --volume /app/storage \
+	-e APP_ENV=testing -e APP_KEY=12345678901234567890123456789012 \
+	-e DB_CONNECTION=sqlite -e DB_DATABASE=:memory: -e DB_URL= \
+	-e CACHE_STORE=array -e SESSION_DRIVER=array -e QUEUE_CONNECTION=sync \
+	-e MAIL_MAILER=array -e BROADCAST_CONNECTION=null -e FILESYSTEM_DISK=local \
+	app
 WEB_PORT ?= 5173
 API_PROXY_TARGET ?= http://127.0.0.1:8000
 
@@ -9,8 +15,8 @@ VITE := $(WEB_DIR)/node_modules/.bin/vite
 REQUIRE_VITE = test -x "$(VITE)" || { echo "Install frontend dependencies with npm --prefix web ci." >&2; exit 1; }
 
 .DEFAULT_GOAL := start
-.PHONY: start stop backend-start backend-stop backend-restart backend-test \
-	frontend-start frontend-stop frontend-restart frontend-test
+.PHONY: start stop pre-commit backend-start backend-stop backend-restart backend-test backend-check backend-audit \
+	frontend-start frontend-stop frontend-restart frontend-test frontend-check
 
 define lock_web_state
 	state="$(WEB_STATE)"; \
@@ -71,12 +77,13 @@ backend-restart:
 	$(MAKE) backend-start
 
 backend-test:
-	$(DOCKER_COMPOSE) run --build --rm --no-deps --volume /app/storage \
-		-e APP_ENV=testing -e APP_KEY=12345678901234567890123456789012 \
-		-e DB_CONNECTION=sqlite -e DB_DATABASE=:memory: -e DB_URL= \
-		-e CACHE_STORE=array -e SESSION_DRIVER=array -e QUEUE_CONNECTION=sync \
-		-e MAIL_MAILER=array -e BROADCAST_CONNECTION=null -e FILESYSTEM_DISK=local \
-		app php vendor/bin/phpunit --do-not-cache-result
+	$(BACKEND_VERIFY) php vendor/bin/phpunit --do-not-cache-result
+
+backend-check:
+	$(BACKEND_VERIFY) composer run check --no-interaction
+
+backend-audit:
+	$(BACKEND_VERIFY) composer audit --locked --no-cache --no-interaction
 
 frontend-start frontend-restart:
 	@$(REQUIRE_VITE)
@@ -119,3 +126,15 @@ frontend-test:
 	CI=1 npm --prefix web run test --if-present
 	npm --prefix web run lint
 	npm --prefix web run build
+
+frontend-check:
+	npm --prefix web run typecheck
+	npm --prefix web run lint
+	npm --prefix web run format:check
+
+pre-commit:
+	$(MAKE) backend-check
+	$(MAKE) frontend-check
+	$(MAKE) backend-test
+	$(MAKE) frontend-test
+	$(MAKE) backend-audit

@@ -12,7 +12,8 @@ const apiStatusLabel = {
 
 function App() {
   const [count, setCount] = useState(0)
-  const [apiStatus, setApiStatus] = useState<keyof typeof apiStatusLabel>('checking')
+  const [apiStatus, setApiStatus] =
+    useState<keyof typeof apiStatusLabel>('checking')
 
   useEffect(() => {
     const controller = new AbortController()
