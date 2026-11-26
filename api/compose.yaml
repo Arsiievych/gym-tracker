@@ -15,6 +15,8 @@ x-laravel: &laravel
 services:
   app:
     <<: *laravel
+    environment:
+      SANCTUM_STATEFUL_DOMAINS: ${SANCTUM_STATEFUL_DOMAINS:-127.0.0.1:${WEB_PORT:-5173},localhost:${WEB_PORT:-5173}}
     volumes:
       - laravel-storage:/app/storage
     command:

@@ -74,6 +74,10 @@ curl -fsS http://127.0.0.1:5173/api/health
 
 The expected response is `{"status":"ok"}`. To check Laravel directly, open the [API health endpoint](http://127.0.0.1:8000/api/health).
 
+Vite proxies `/api/` and `/sanctum/` requests to Laravel. To use the Sanctum session API, first request `GET /sanctum/csrf-cookie`, then send the URL-decoded `XSRF-TOKEN` cookie value in the `X-XSRF-TOKEN` header on writes. An authenticated session can read the current account at `GET /api/auth/me`.
+
+Compose trusts `127.0.0.1` and `localhost` on the selected Vite port. For a different SPA host behind the same-origin proxy, set `SANCTUM_STATEFUL_DOMAINS` to the comma-separated hostnames, including any nonstandard ports.
+
 ## Local URLs
 
 | Service | Default address | Purpose |

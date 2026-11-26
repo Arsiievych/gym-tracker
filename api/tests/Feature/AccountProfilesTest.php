@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Modules\Auth\Models\ProfileRole;
 use App\Modules\Auth\Models\User;
-use Database\Seeders\DatabaseSeeder;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -28,10 +27,7 @@ class AccountProfilesTest extends TestCase
 
         $user->athleteProfile()->create();
 
-        $this->assertSame(
-            [ProfileRole::Athlete, ProfileRole::Trainer],
-            array_map(static fn (ProfileRole $role): string => $role->value, $user->roles()),
-        );
+        $this->assertSame([ProfileRole::Athlete, ProfileRole::Trainer], $user->roles());
     }
 
     public function test_both_profiles_resolve_their_owner(): void
