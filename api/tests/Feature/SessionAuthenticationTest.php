@@ -41,6 +41,39 @@ class SessionAuthenticationTest extends TestCase
         $this->browserRequest('POST', '/api/auth/login', $logout, $credentials)->assertNoContent();
     }
 
+    public function test_registration_rotates_the_session_and_authenticates_the_new_account(): void
+    {
+        config(['sanctum.stateful' => ['spa.test']]);
+        // Enable Laravel's CSRF check, which the testing environment normally bypasses.
+        $this->app->instance('env', 'local');
+        $guest = $this->browserRequest('GET', '/sanctum/csrf-cookie')->assertNoContent();
+        $guestToken = $guest->getCookie('XSRF-TOKEN', decrypt: false);
+        self::assertNotNull($guestToken);
+
+        $payload = [
+            'email' => 'New+Member@Example.com',
+            'password' => 'password',
+            'profile_type' => 'trainer',
+        ];
+        $this->browserRequest('POST', '/api/auth/register', $guest, $payload)->assertStatus(419);
+        $this->assertDatabaseCount('users', 0);
+
+        $registration = $this->browserRequest('POST', '/api/auth/register', $guest, $payload, $guestToken->getValue())
+            ->assertNoContent(201)
+            ->assertCookie('XSRF-TOKEN');
+
+        self::assertNotSame($this->sessionCookie($guest)->getValue(), $this->sessionCookie($registration)->getValue());
+        self::assertNotSame($guest->getCookie('XSRF-TOKEN')?->getValue(), $registration->getCookie('XSRF-TOKEN')?->getValue());
+        $user = User::query()->sole();
+        $this->browserRequest('GET', '/api/auth/me', $registration)->assertOk()->assertExactJson([
+            'id' => $user->id,
+            'name' => 'Trainer #'.$user->id,
+            'email' => 'new+member@example.com',
+            'roles' => ['trainer'],
+        ]);
+        $this->browserRequest('GET', '/api/auth/me', $guest)->assertUnauthorized();
+    }
+
     public function test_login_rejects_an_incorrect_password(): void
     {
         User::factory()->create(['email' => 'member@example.com', 'password' => 'correct password']);
@@ -106,6 +139,7 @@ class SessionAuthenticationTest extends TestCase
             'current account' => ['GET', '/api/auth/me'],
             'logout' => ['POST', '/api/auth/logout'],
             'login' => ['POST', '/api/auth/login'],
+            'registration' => ['POST', '/api/auth/register'],
             'CSRF cookie' => ['GET', '/sanctum/csrf-cookie'],
         ];
     }
@@ -115,8 +149,13 @@ class SessionAuthenticationTest extends TestCase
      * @param  array<string, string>|null  $payload
      * @return TestResponse<Response>
      */
-    private function browserRequest(string $method, string $uri, ?TestResponse $sessionResponse = null, ?array $payload = null): TestResponse
-    {
+    private function browserRequest(
+        string $method,
+        string $uri,
+        ?TestResponse $sessionResponse = null,
+        ?array $payload = null,
+        ?string $xsrfToken = null,
+    ): TestResponse {
         // Reset in-memory state between requests while preserving the stored sessions.
         Auth::forgetGuards();
         Auth::shouldUse('web');
@@ -136,6 +175,10 @@ class SessionAuthenticationTest extends TestCase
 
         if ($payload !== null) {
             $server['CONTENT_TYPE'] = 'application/json; charset=UTF-8';
+        }
+
+        if ($xsrfToken !== null) {
+            $server['HTTP_X_XSRF_TOKEN'] = $xsrfToken;
         }
 
         return $this->call(

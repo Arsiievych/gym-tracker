@@ -79,15 +79,22 @@ Vite proxies `/api/` and `/sanctum/` requests to Laravel. For SPA requests, incl
 
 | Endpoint | Behavior |
 | --- | --- |
+| `POST /api/auth/register` | Send `email`, `password` (at least 8 characters), and `profile_type` (`athlete` or `trainer`) in the JSON body. Creates the account with an initial name such as `Trainer #123` or `Athlete #123` and the selected profile, signs the user in, and returns an empty `201`. Returns `422` for invalid fields or an email already in use, `409` for a valid request from a signed-in session, or `429` after five requests per minute per IP. |
 | `POST /api/auth/login` | Send `email` and `password` in the JSON body. Login reads the body as JSON regardless of `Content-Type`. Returns `204` on login or `422` for invalid input or credentials. The route allows five requests per minute per IP as resolved by Laravel and then returns `429`. |
 | `GET /api/auth/me` | Returns the current account for an authenticated session or `401` for a guest. |
 | `POST /api/auth/logout` | Ends the current authenticated session and returns `204`. |
+
+GymTracker hashes passwords with Laravel’s Argon2id driver (`HASH_DRIVER=argon2id`).
+
+Custom registration and login error messages support English (`APP_LOCALE=en`) and Ukrainian (`APP_LOCALE=uk`), with English as the fallback. Email is normalized by the user model before saving and protected by one unique index, `users_email_unique`.
+
+Queues use Redis. PostgreSQL stores job batch metadata and failed job records through Laravel’s standard configuration.
 
 Compose trusts `127.0.0.1` and `localhost` on the selected Vite port. For a different SPA host behind the same-origin proxy, set `SANCTUM_STATEFUL_DOMAINS` to the comma-separated hostnames, including any nonstandard ports.
 
 Local browser sessions through Vite share the proxy's login rate limit. For deployments behind a reverse proxy, configure the proxy to set the client IP and configure Laravel to trust that header only from the deployment's proxy addresses.
 
-Session blocking uses the shared cache in Compose (Redis). For multi-worker deployments, keep the request deadline shorter than Laravel's default 10-second session lock lifetime so the lock remains held until the session is saved.
+Registration rate limits and session blocking use the shared Redis service in Compose. For multi-worker deployments, keep the request deadline shorter than Laravel's default 10-second session lock lifetime so the lock remains held until the session is saved.
 
 ## Local URLs
 
@@ -127,12 +134,14 @@ When starting Vite separately, you can set its API address explicitly with `make
 
 | Command | What it runs |
 | --- | --- |
-| `make backend-test` | PHPUnit with an in-memory SQLite database and temporary storage |
+| `make backend-test` | PHPUnit in the running app service against the separate PostgreSQL database `gymtracker_test` (created automatically) |
 | `make backend-check` | Pint, Larastan (PHPStan level 8), and Deptrac in Docker |
 | `make backend-audit` | Composer advisory checks against `api/composer.lock` (requires network access) |
 | `make frontend-test` | The frontend test script if present, followed by linting and a production build |
 | `make frontend-check` | TypeScript, Oxlint, and Prettier checks |
 | `make pre-commit` | All checks, tests, and the dependency audit |
+
+PostgreSQL is the supported database for development and tests. The name `gymtracker_test` is reserved for tests and must differ from `POSTGRES_DB`. Backend checks reuse the running Docker services and the current checkout. PHPUnit uses a separate configuration cache path and verifies the resolved PostgreSQL connection points to `gymtracker_test` before database refreshes. The committed `api/.env.testing` selects Redis databases `14` and `15` for the default and cache connections. These databases are reserved for tests and cleared before and after each test. Run one test process at a time against this shared test environment.
 
 Run `npm --prefix web run format` to apply Prettier formatting.
 

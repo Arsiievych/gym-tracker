@@ -2,6 +2,7 @@
 
 namespace App\Modules\Auth\Models;
 
+use App\Modules\Auth\Data\ProfileRole;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;

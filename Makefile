@@ -1,8 +1,8 @@
 DOCKER_COMPOSE ?= docker compose -f api/compose.yaml
 DEV_COMPOSE = $(DOCKER_COMPOSE) -f api/compose.dev.yaml
-BACKEND_VERIFY = $(DOCKER_COMPOSE) run --build --rm --no-deps --volume /app/storage \
-	-e APP_ENV=testing -e APP_KEY=12345678901234567890123456789012 \
-	-e DB_CONNECTION=sqlite -e DB_DATABASE=:memory: -e DB_URL= \
+BACKEND_VERIFY = $(DEV_COMPOSE) exec -T \
+	-e APP_ENV=testing -e APP_CONFIG_CACHE=/tmp/gymtracker-testing-config.php -e APP_KEY=12345678901234567890123456789012 \
+	-e DB_CONNECTION=pgsql -e DB_DATABASE=gymtracker_test -e DB_URL= \
 	-e CACHE_STORE=array -e SESSION_DRIVER=array -e QUEUE_CONNECTION=sync \
 	-e MAIL_MAILER=array -e BROADCAST_CONNECTION=null -e FILESYSTEM_DISK=local \
 	app
@@ -16,7 +16,7 @@ VITE := $(WEB_DIR)/node_modules/.bin/vite
 REQUIRE_VITE = test -x "$(VITE)" || { echo "Install frontend dependencies with npm --prefix web ci." >&2; exit 1; }
 
 .DEFAULT_GOAL := start
-.PHONY: start stop pre-commit backend-install backend-start backend-stop backend-restart backend-test backend-check backend-audit \
+.PHONY: start stop pre-commit backend-install backend-start backend-stop backend-restart backend-test backend-test-db backend-check backend-audit \
 	frontend-start frontend-stop frontend-restart frontend-test frontend-check
 
 define lock_web_state
@@ -82,7 +82,10 @@ backend-restart:
 	$(MAKE) backend-stop
 	$(MAKE) backend-start
 
-backend-test:
+backend-test-db:
+	$(DOCKER_COMPOSE) exec -T database sh -ec 'if [ "$$POSTGRES_DB" = gymtracker_test ]; then echo "gymtracker_test must be separate from POSTGRES_DB." >&2; exit 1; fi; databases=$$(psql -U "$$POSTGRES_USER" -d postgres -tAc "SELECT datname FROM pg_database"); if ! printf "%s\n" "$$databases" | grep -qx gymtracker_test; then createdb -U "$$POSTGRES_USER" gymtracker_test; fi'
+
+backend-test: backend-test-db
 	$(BACKEND_VERIFY) php vendor/bin/phpunit --do-not-cache-result
 
 backend-check:

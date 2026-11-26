@@ -42,13 +42,13 @@ class UserCredentialsTest extends TestCase
 
     public function test_the_database_rejects_duplicate_normalized_emails(): void
     {
-        $user = User::factory()->create(['email' => 'person@example.com']);
+        $user = User::factory()->create(['email' => "\t Person@EXAMPLE.COM \n"]);
 
         $this->expectException(UniqueConstraintViolationException::class);
 
         DB::table('users')->insert([
             'name' => 'Another User',
-            'email' => "\t Person@EXAMPLE.COM \n",
+            'email' => 'person@example.com',
             'password' => $user->password,
         ]);
     }

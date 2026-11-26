@@ -16,8 +16,13 @@ return static function (DeptracConfig $config): void {
     $moduleDirectories = glob(__DIR__.'/app/Modules/*', GLOB_ONLYDIR) ?: [];
     $moduleNames = array_unique([...array_keys($allowedDependencies), ...array_map('basename', $moduleDirectories)]);
 
+    $exceptions = Layer::withName('Exceptions')->collectors(
+        ClassLikeConfig::create('^App\\Exceptions\\'),
+    );
+    $config->layers($exceptions)->rulesets(Ruleset::forLayer($exceptions));
+
     $application = Layer::withName('Application')->collectors(
-        ClassLikeConfig::create('^App\\(?!(?:Modules|Providers)\\)'),
+        ClassLikeConfig::create('^App\\(?!(?:Modules|Providers|Exceptions)\\)'),
     );
     $config->layers($application)->rulesets(Ruleset::forLayer($application));
 
@@ -35,6 +40,6 @@ return static function (DeptracConfig $config): void {
 
     foreach ($modules as $name => $layer) {
         $dependencies = array_map(static fn (string $dependency): Layer => $modules[$dependency], $allowedDependencies[$name] ?? []);
-        $config->rulesets(Ruleset::forLayer($layer)->accesses(...$dependencies));
+        $config->rulesets(Ruleset::forLayer($layer)->accesses($exceptions, ...$dependencies));
     }
 };

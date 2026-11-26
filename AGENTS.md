@@ -32,12 +32,13 @@ Organize backend code by business module under `api/app/Modules/<Module>`, with 
 | `Http/ViewModels` | End with `ViewModel` | `AccountViewModel` | `Models`, `Data` |
 | `Actions` | Describe the operation and end with `Action` | `StoreWorkoutAction` | `Repositories`, `Data` |
 | `Repositories` | End with `Repository` | `WorkoutRepository` | `Models`, `Data` |
-| `Models` | Use the singular entity name | `Workout` | None |
-| `Data` | End with `Data` | `StoreWorkoutData` | None |
+| `Models` | Use the singular entity name | `Workout` | `Data` |
+| `Data` | End DTO names with `Data`. Use the domain name for shared enums. | `StoreWorkoutData`, `ProfileRole` | None |
 
 - Keep controllers thin. For business operations, a `FormRequest` can validate input and create a DTO for an action. Resources turn returned DTOs into JSON responses.
 - For simple reads, a controller can use a ViewModel to shape the response from models or data it already has. ViewModels can read model relationships and expose selected fields. Keep session handling, business rules, and writes outside ViewModels.
-- Actions execute business operations such as booking a session. Repositories query and persist Eloquent models, then return DTOs or scalar values.
+- Actions execute business operations such as booking a session and coordinate database transactions. Database queries and writes belong in repositories. Repositories query and persist Eloquent models, then return DTOs or scalar values.
+- Actions can use shared exceptions under `App\Exceptions`. `BusinessException` returns an explicitly supplied message with its HTTP status.
 - Use `Actions/Api` for public actions and interfaces and `Data/Api` for their DTOs. Name a public interface after its operation, such as `GetUserSummary`. Its implementation uses the `Action` suffix, as in `GetUserSummaryAction`.
 - Declare cross-module dependencies in `allowedDependencies` in [`api/deptrac.modules.php`](api/deptrac.modules.php). A module with an explicit dependency can use the target module's public API. The [layer rules](api/deptrac.layers.yaml) still apply to cross-module dependencies.
 

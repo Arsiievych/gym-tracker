@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Modules\Auth\Models\ProfileRole;
+use App\Modules\Auth\Data\ProfileRole;
 use App\Modules\Auth\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -68,7 +68,6 @@ class AccountProfilesTest extends TestCase
     #[DataProvider('profileTables')]
     public function test_the_database_requires_an_explicit_profile_owner(string $table): void
     {
-        // A SQLite INTEGER PRIMARY KEY would assign ID 1 to the first profile.
         User::factory()->create(['id' => 1]);
 
         $this->assertThrows(

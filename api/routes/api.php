@@ -16,6 +16,9 @@ Route::prefix('auth')
     ->middleware('web')
     ->withoutMiddleware(EnsureFrontendRequestsAreStateful::class)
     ->group(function (): void {
+        Route::post('/register', [AuthController::class, 'register'])
+            ->middleware('throttle:register');
+
         Route::post('/login', [AuthController::class, 'login'])
             ->middleware('throttle:login');
 

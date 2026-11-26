@@ -3,6 +3,9 @@ deptrac:
     - ./app
 
   layers:
+    - name: Exceptions
+      collectors:
+        - { type: classLike, value: '^App\\Exceptions\\' }
     - name: Requests
       collectors:
         - { type: classLike, value: '^App\\(?:Modules\\[^\\]+\\)?Http\\Requests\\' }
@@ -48,6 +51,7 @@ deptrac:
             - { type: classLike, value: '^App\\' }
           must_not:
             - { type: layer, value: Requests }
+            - { type: layer, value: Exceptions }
             - { type: layer, value: Controllers }
             - { type: layer, value: Resources }
             - { type: layer, value: ViewModels }
@@ -58,13 +62,14 @@ deptrac:
             - { type: layer, value: Providers }
 
   ruleset:
+    Exceptions: [Laravel]
     Requests: [Data, Laravel]
     Controllers: [Requests, Actions, Resources, ViewModels, Laravel]
     Resources: [Data, Laravel]
     ViewModels: [Models, Data, Laravel]
-    Actions: [Repositories, Data, Laravel]
+    Actions: [Repositories, Data, Exceptions, Laravel, LaravelPersistence]
     Repositories: [Models, Data, Laravel, LaravelPersistence]
-    Models: [Laravel, LaravelPersistence]
+    Models: [Data, Laravel, LaravelPersistence]
     Data: []
     Providers: [Requests, Controllers, Resources, ViewModels, Actions, Repositories, Models, Data, Laravel, LaravelPersistence]
     UnclassifiedApp: []
