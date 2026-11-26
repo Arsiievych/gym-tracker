@@ -2,15 +2,15 @@
 
 namespace App\Modules\Auth\Http\Controllers;
 
-use App\Modules\Auth\Data\AccountData;
 use App\Modules\Auth\Http\ViewModels\AccountViewModel;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Http\JsonResponse;
 
 final class CurrentAccountController
 {
-    public function show(#[CurrentUser] Authenticatable $user, AccountViewModel $viewModel): AccountData
+    public function show(#[CurrentUser] Authenticatable $user, AccountViewModel $viewModel): JsonResponse
     {
-        return $viewModel->run($user);
+        return response()->json($viewModel->run($user));
     }
 }

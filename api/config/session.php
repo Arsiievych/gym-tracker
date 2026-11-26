@@ -20,6 +20,10 @@ return [
 
     'driver' => env('SESSION_DRIVER', 'database'),
 
+    // Serialize requests sharing a session, including Sanctum's stateful API requests.
+    'block' => true,
+    'block_store' => 'redis',
+
     /*
     |--------------------------------------------------------------------------
     | Session Lifetime

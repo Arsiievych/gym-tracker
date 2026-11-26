@@ -18,6 +18,10 @@ GymTracker has a Laravel API in [`api/`](api/) and a separate React and TypeScri
 
 ## Laravel API architecture
 
+- Register all application API endpoints in `routes/api.php`, regardless of their authentication mechanism.
+- Middleware requirements must not determine route file placement.
+- Reserve `routes/web.php` for non-API web endpoints.
+
 Organize backend code by business module under `api/app/Modules/<Module>`, with namespaces under `App\Modules\<Module>`. Use these paths and naming conventions. Each PHP filename matches its class name.
 
 | Path within a module | Naming convention | Example | Allowed dependencies on other application layers |

@@ -75,9 +75,19 @@ curl -fsS http://127.0.0.1:5173/api/health
 
 The expected response is `{"status":"ok"}`. To check Laravel directly, open the [API health endpoint](http://127.0.0.1:8000/api/health).
 
-Vite proxies `/api/` and `/sanctum/` requests to Laravel. To use the Sanctum session API, first request `GET /sanctum/csrf-cookie`, then send the URL-decoded `XSRF-TOKEN` cookie value in the `X-XSRF-TOKEN` header on writes. An authenticated session can read the current account at `GET /api/auth/me`.
+Vite proxies `/api/` and `/sanctum/` requests to Laravel. For SPA requests, include cookies, `Accept: application/json`, and the SPA's `Origin` or `Referer`. First request `GET /sanctum/csrf-cookie`. Send the current, URL-decoded `XSRF-TOKEN` cookie value as the `X-XSRF-TOKEN` header on each write.
+
+| Endpoint | Behavior |
+| --- | --- |
+| `POST /api/auth/login` | Send `email` and `password` in the JSON body. Login reads the body as JSON regardless of `Content-Type`. Returns `204` on login or `422` for invalid input or credentials. The route allows five requests per minute per IP as resolved by Laravel and then returns `429`. |
+| `GET /api/auth/me` | Returns the current account for an authenticated session or `401` for a guest. |
+| `POST /api/auth/logout` | Ends the current authenticated session and returns `204`. |
 
 Compose trusts `127.0.0.1` and `localhost` on the selected Vite port. For a different SPA host behind the same-origin proxy, set `SANCTUM_STATEFUL_DOMAINS` to the comma-separated hostnames, including any nonstandard ports.
+
+Local browser sessions through Vite share the proxy's login rate limit. For deployments behind a reverse proxy, configure the proxy to set the client IP and configure Laravel to trust that header only from the deployment's proxy addresses.
+
+Session blocking uses the shared cache in Compose (Redis). For multi-worker deployments, keep the request deadline shorter than Laravel's default 10-second session lock lifetime so the lock remains held until the session is saved.
 
 ## Local URLs
 
