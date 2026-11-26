@@ -23,15 +23,17 @@ Organize backend code by business module under `api/app/Modules/<Module>`, with 
 | Path within a module | Naming convention | Example | Allowed dependencies on other application layers |
 | --- | --- | --- | --- |
 | `Http/Requests` | End with `Request` | `StoreWorkoutRequest` | `Data` |
-| `Http/Controllers` | End with `Controller` | `WorkoutController` | `Http/Requests`, `Actions`, `Http/Resources` |
+| `Http/Controllers` | End with `Controller` | `WorkoutController` | `Http/Requests`, `Actions`, `Http/Resources`, `Http/ViewModels` |
 | `Http/Resources` | End with `Resource` | `WorkoutResource` | `Data` |
+| `Http/ViewModels` | End with `ViewModel` | `AccountViewModel` | `Models`, `Data` |
 | `Actions` | Describe the operation and end with `Action` | `StoreWorkoutAction` | `Repositories`, `Data` |
 | `Repositories` | End with `Repository` | `WorkoutRepository` | `Models`, `Data` |
 | `Models` | Use the singular entity name | `Workout` | None |
 | `Data` | End with `Data` | `StoreWorkoutData` | None |
 
-- A `FormRequest` validates input and creates an input DTO. Keep controllers thin. They call an action with the validated data and return a `JsonResource`.
-- Actions handle use cases and work with repositories. Repositories query and persist Eloquent models, then return DTOs or scalar values. Resources turn DTOs into JSON responses.
+- Keep controllers thin. For business operations, a `FormRequest` can validate input and create a DTO for an action. Resources turn returned DTOs into JSON responses.
+- For simple reads, a controller can use a ViewModel to shape the response from models or data it already has. ViewModels can read model relationships and expose selected fields. Keep session handling, business rules, and writes outside ViewModels.
+- Actions execute business operations such as booking a session. Repositories query and persist Eloquent models, then return DTOs or scalar values.
 - Use `Actions/Api` for public actions and interfaces and `Data/Api` for their DTOs. Name a public interface after its operation, such as `GetUserSummary`. Its implementation uses the `Action` suffix, as in `GetUserSummaryAction`.
 - Declare cross-module dependencies in `allowedDependencies` in [`api/deptrac.modules.php`](api/deptrac.modules.php). A module with an explicit dependency can use the target module's public API. The [layer rules](api/deptrac.layers.yaml) still apply to cross-module dependencies.
 

@@ -12,6 +12,9 @@ deptrac:
     - name: Resources
       collectors:
         - { type: classLike, value: '^App\\(?:Modules\\[^\\]+\\)?Http\\Resources\\' }
+    - name: ViewModels
+      collectors:
+        - { type: classLike, value: '^App\\(?:Modules\\[^\\]+\\)?Http\\ViewModels\\' }
     - name: Actions
       collectors:
         - { type: classLike, value: '^App\\(?:Modules\\[^\\]+\\)?Actions\\' }
@@ -47,6 +50,7 @@ deptrac:
             - { type: layer, value: Requests }
             - { type: layer, value: Controllers }
             - { type: layer, value: Resources }
+            - { type: layer, value: ViewModels }
             - { type: layer, value: Actions }
             - { type: layer, value: Repositories }
             - { type: layer, value: Models }
@@ -55,11 +59,12 @@ deptrac:
 
   ruleset:
     Requests: [Data, Laravel]
-    Controllers: [Requests, Actions, Resources, Laravel]
+    Controllers: [Requests, Actions, Resources, ViewModels, Laravel]
     Resources: [Data, Laravel]
+    ViewModels: [Models, Data, Laravel]
     Actions: [Repositories, Data, Laravel]
     Repositories: [Models, Data, Laravel, LaravelPersistence]
     Models: [Laravel, LaravelPersistence]
     Data: []
-    Providers: [Requests, Controllers, Resources, Actions, Repositories, Models, Data, Laravel, LaravelPersistence]
+    Providers: [Requests, Controllers, Resources, ViewModels, Actions, Repositories, Models, Data, Laravel, LaravelPersistence]
     UnclassifiedApp: []
