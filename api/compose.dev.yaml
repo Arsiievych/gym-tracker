@@ -1,0 +1,11 @@
+x-workspace: &workspace
+  volumes:
+    - .:/app
+  tmpfs:
+    - /app/bootstrap/cache:uid=33,gid=33,mode=0755
+
+services:
+  app: *workspace
+  cron: *workspace
+  horizon: *workspace
+  reverb: *workspace

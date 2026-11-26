@@ -50,9 +50,10 @@ docker compose -f api/compose.yaml run --build --rm --no-deps --user root \
   -v "$PWD/api/.env:/app/.env" app php artisan key:generate --no-interaction
 ```
 
-### 5. Install frontend dependencies
+### 5. Install dependencies
 
 ```sh
+make backend-install
 npm --prefix web ci
 ```
 
@@ -62,7 +63,7 @@ npm --prefix web ci
 make start
 ```
 
-Make builds and starts the backend containers, waits for Laravel to become healthy, then starts Vite in the background with the published API address. During startup, `minio-init` creates the bucket if needed and Laravel applies pending PostgreSQL migrations.
+Make starts the backend against the local `api/` checkout. It waits for Laravel to become healthy, then starts Vite in the background with the published API address. During startup, `minio-init` creates the bucket if needed and Laravel applies pending PostgreSQL migrations.
 
 ### 7. Verify the application
 
@@ -100,14 +101,17 @@ If a backend port is in use, change the corresponding setting in `api/.env` and 
 | Task | Command |
 | --- | --- |
 | Start or stop the whole project | `make start` / `make stop` |
-| Start the backend containers | `make backend-start` or `docker compose -f api/compose.yaml up --build --detach --wait` |
+| Install Composer dependencies into the shared `api/vendor` | `make backend-install` |
+| Start the backend containers | `make backend-start` |
 | Stop or restart the backend | `make backend-stop` / `make backend-restart` |
 | Start, stop, or restart Vite | `make frontend-start` / `make frontend-stop` / `make frontend-restart` |
 | Inspect container status, including completed services | `docker compose -f api/compose.yaml ps -a` |
 | Follow Laravel logs | `docker compose -f api/compose.yaml logs -f app` |
 | Follow Vite logs (default port) | `tail -f web/.gymtracker.local/5173/vite.log` |
 
-After editing Laravel source files, run `make backend-start` to rebuild the image. When starting Vite separately, you can set its API address explicitly with `make frontend-start API_PROXY_TARGET=http://127.0.0.1:8001`. Stopping the stack preserves PostgreSQL, Redis, MinIO, Mailpit, and Laravel storage data in Docker volumes.
+Laravel reads source changes from the local `api/` directory on the next HTTP request. The development containers share that directory, including `api/vendor`. Container writes appear in the checkout when file permissions allow them. `make backend-install` runs Composer with your local user ID so it can write to `api/vendor`. When Composer dependencies change, stop the backend, run `make backend-install`, and start it again. Use `make backend-restart` when long-running workers need to reload PHP code.
+
+When starting Vite separately, you can set its API address explicitly with `make frontend-start API_PROXY_TARGET=http://127.0.0.1:8001`. Stopping the stack preserves PostgreSQL, Redis, MinIO, Mailpit, and Laravel storage data in Docker volumes.
 
 ## Development checks
 
